@@ -129,6 +129,13 @@ def main():
                         }
         },
     ]
+    print(problems[2]['drones'])
+    for key,value in problems[2]['drones'].items():
+        print(key)
+        print(value)
+
+    exit()
+
     solve_problems(problems)
 
 
