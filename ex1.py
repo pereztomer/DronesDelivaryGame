@@ -1,5 +1,5 @@
 import itertools
-
+import json
 import search
 import random
 import math
@@ -33,7 +33,9 @@ class DroneProblem(search.Problem):
                 'clients': clients_init,
                 'clock': 0
                 }
-
+        data= json.dumps(data, sort_keys=True)
+        # print(data)
+        # pupa= json.loads(data)
         search.Problem.__init__(self, data)
 
     def actions(self, state):
