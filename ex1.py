@@ -1,11 +1,10 @@
-from
+import itertools
 
 import search
 import random
 import math
 
-
-ids = ["111111111", "111111111"]
+ids = ["318295029", "316327451"]
 
 
 class DroneProblem(search.Problem):
@@ -46,22 +45,22 @@ class DroneProblem(search.Problem):
         width = len(state['map'][0])
         possible_actions_dict = {}
         for drone in state['drones'].keys():
-            possible_actions_dict[drone] = ['wait']
+            possible_actions_dict[drone] = [drone + ' wait']
         for drone, drone_dict in state['drones'].items():
-            if drone_dict['loc'][0]-1 >= 0 and state['map'][drone_dict['loc'][0]-1][drone_dict['loc'][1]] == 'P':
-                possible_actions_dict[drone].append('up')
-            if drone_dict['loc'][0]+1 < length and state['map'][drone_dict['loc'][0]+1][drone_dict['loc'][1]] == 'P':
-                possible_actions_dict[drone].append('down')
-            if drone_dict['loc'][1]-1 >= 0 and state['map'][drone_dict['loc'][0]][drone_dict['loc'][1]-1] == 'P':
-                possible_actions_dict[drone].append('right')
-            if drone_dict['loc'][1]+1 < width and state['map'][drone_dict['loc'][0]][drone_dict['loc'][1]+1] == 'P':
-                possible_actions_dict[drone].append('left')
+            if drone_dict['loc'][0] - 1 >= 0 and state['map'][drone_dict['loc'][0] - 1][drone_dict['loc'][1]] == 'P':
+                possible_actions_dict[drone].append(drone + ' up')
+            if drone_dict['loc'][0] + 1 < length and state['map'][drone_dict['loc'][0] + 1][drone_dict['loc'][1]] == 'P':
+                possible_actions_dict[drone].append(drone + ' down')
+            if drone_dict['loc'][1] - 1 >= 0 and state['map'][drone_dict['loc'][0]][drone_dict['loc'][1] - 1] == 'P':
+                possible_actions_dict[drone].append(drone + ' right')
+            if drone_dict['loc'][1] + 1 < width and state['map'][drone_dict['loc'][0]][drone_dict['loc'][1] + 1] == 'P':
+                possible_actions_dict[drone].append(drone + ' left')
 
         for package, package_dict in state['packages'].items():
             if package_dict['lifted-buy'] == 'null' and package_dict['belong'] != 'null':
                 for drone, drone_dict in state['drones'].items():
                     if sorted(drone_dict['loc']) == sorted(package['loc']):
-                        possible_actions_dict[drone].append(['pick_up', drone, package])
+                        possible_actions_dict[drone].append('pick_up_' + drone + '_' + package)
 
         all_possible_actions = []
         for drone in state['drones'].keys():
@@ -73,6 +72,10 @@ class DroneProblem(search.Problem):
 
 
     def result(self, state, action):
+        for drone, drone_dict in state['drones']:
+            pass
+
+
 
         """Return the state that results from executing the given
         action in the given state. The action must be one of
@@ -94,4 +97,3 @@ class DroneProblem(search.Problem):
 
 def create_drone_problem(game):
     return DroneProblem(game)
-
