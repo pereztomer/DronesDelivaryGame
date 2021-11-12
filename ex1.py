@@ -84,6 +84,7 @@ class DroneProblem(search.Problem):
     def goal_test(self, state):
         """ Given a state, checks if this is the goal state.
          Returns True if it is, False otherwise."""
+        state = json.loads(state)
         for client in state['clients']:
             for package in state['clients'][client]['packages']:
                 if state['packages'][package]['given']== False:
