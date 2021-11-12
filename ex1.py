@@ -1,11 +1,11 @@
-import itertools
+from
 
 import search
 import random
 import math
 
 
-ids = ["318295029", "316327451"]
+ids = ["111111111", "111111111"]
 
 
 class DroneProblem(search.Problem):
@@ -15,8 +15,28 @@ class DroneProblem(search.Problem):
         """Don't forget to implement the goal test
         You should change the initial to your own representation.
         search.Problem.__init__(self, initial) creates the root node"""
-        search.Problem.__init__(self, initial)
-        
+        drone_init = {}
+        package_init = {}
+        clients_init = {}
+        for key in initial['drones']:
+            drone_init[key] = {'loc': initial['drones'][key], 'holding': ["null", "null"]}
+        for key in initial['packages']:
+            package_init[key] = {'loc': initial['packages'][key], 'belong': "null", 'holder': "null"}
+        for key in initial['clients']:
+            clients_init[key] = {'path': initial['clients'][key]['path'],
+                                 'packages': initial['clients'][key]['packages'],
+                                 'pattern_cur': 0,
+                                 'loc': initial['clients'][key]['path'][0]}
+
+        data = {'map': initial['map'],
+                'drones': drone_init,
+                'packages': package_init,
+                'clients': clients_init,
+                'clock': 0
+                }
+
+        search.Problem.__init__(self, data)
+
     def actions(self, state):
         """Returns all the actions that can be executed in the given
                state. The result should be a tuple (or other iterable) of actions

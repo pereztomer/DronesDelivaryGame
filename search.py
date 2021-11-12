@@ -36,7 +36,7 @@ class Problem(object):
         self.goal = goal
 
     def actions(self, state):
-        """Return the actions that can be executed in the givens
+        """Return the actions that can be executed in the given
         state. The result would typically be a list, but if there are
         many actions, consider yielding them one at a time in an
         iterator, rather than building them all at once."""
