@@ -83,10 +83,10 @@ class DroneProblem(search.Problem):
         """ Given a state, checks if this is the goal state.
          Returns True if it is, False otherwise."""
         for client in state['clients']:
-            for package in client['packages']:
-                if package["given"] == False:
-                    return false
-        return true
+            for package in state['clients'][client]['packages']:
+                if state['packages'][package]['given']== False:
+                    return False
+        return True
 
     def h(self, node):
         """ This is the heuristic. It gets a node (not a state,
