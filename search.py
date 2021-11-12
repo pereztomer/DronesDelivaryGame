@@ -23,7 +23,7 @@ infinity = float('inf')
 
 class Problem(object):
 
-    """The abstract class for a formal problem.  You should subclass
+    """The abstract class for a formal problem.  You should subclas
     this and implement the methods actions and result, and possibly
     __init__, goal_test, and path_cost. Then you will create instances
     of your subclass and solve them with the various search functions."""
