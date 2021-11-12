@@ -33,7 +33,7 @@ class DroneProblem(search.Problem):
                 'clients': clients_init,
                 'clock': 0
                 }
-        data= json.dumps(data, sort_keys=True)
+        data = json.dumps(data, sort_keys=True)
         # print(data)
         # pupa= json.loads(data)
         search.Problem.__init__(self, data)
@@ -43,6 +43,7 @@ class DroneProblem(search.Problem):
                state. The result should be a tuple (or other iterable) of actions
                as defined in the problem description file"""
 
+        state = json.loads(state)
         length = len(state['map'])
         width = len(state['map'][0])
         possible_actions_dict = {}
@@ -71,11 +72,23 @@ class DroneProblem(search.Problem):
         all_possible_actions = tuple(all_possible_actions)
 
         all_possible_actions = list(itertools.product(all_possible_actions))
+        ### שני מלטים יכולים להרים את אותה חבילה
+        print("I Hate PUPA!")
         return all_possible_actions
 
     def result(self, state, action):
-        for drone, drone_dict in state['drones']:
-            pass
+        pass
+        # for drone, drone_dict in state['drones']:
+        #     for val in action:
+        #         if drone in val:
+        #             if 'up' in val:
+        #             if 'down' in val:
+        #             if 'left' in val:
+        #             if 'right' in val:
+        #             if 'wait' in val:
+        #             if 'pick_up' in val:
+        #
+        #     pass
 
         """Return the state that results from executing the given
         action in the given state. The action must be one of
