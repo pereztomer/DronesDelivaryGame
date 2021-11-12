@@ -38,7 +38,7 @@ class DroneProblem(search.Problem):
         search.Problem.__init__(self, data)
 
     def actions(self, state):
-        """Returns all the actions that can be executed in the given
+        """Returns all the actions that can be executed in the given s
                state. The result should be a tuple (or other iterable) of actions
                as defined in the problem description file"""
 
