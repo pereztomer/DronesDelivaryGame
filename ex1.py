@@ -20,7 +20,7 @@ class DroneProblem(search.Problem):
         for key in initial['drones']:
             drone_init[key] = {'loc': initial['drones'][key], 'holding': ["null", "null"]}
         for key in initial['packages']:
-            package_init[key] = {'loc': initial['packages'][key], 'belong': "null", 'holder': "null"}
+            package_init[key] = {'loc': initial['packages'][key], 'belong': "null", 'holder': "null", 'given': False}
         for key in initial['clients']:
             clients_init[key] = {'path': initial['clients'][key]['path'],
                                  'packages': initial['clients'][key]['packages'],
@@ -49,7 +49,8 @@ class DroneProblem(search.Problem):
         for drone, drone_dict in state['drones'].items():
             if drone_dict['loc'][0] - 1 >= 0 and state['map'][drone_dict['loc'][0] - 1][drone_dict['loc'][1]] == 'P':
                 possible_actions_dict[drone].append(drone + ' up')
-            if drone_dict['loc'][0] + 1 < length and state['map'][drone_dict['loc'][0] + 1][drone_dict['loc'][1]] == 'P':
+            if drone_dict['loc'][0] + 1 < length and state['map'][drone_dict['loc'][0] + 1][
+                drone_dict['loc'][1]] == 'P':
                 possible_actions_dict[drone].append(drone + ' down')
             if drone_dict['loc'][1] - 1 >= 0 and state['map'][drone_dict['loc'][0]][drone_dict['loc'][1] - 1] == 'P':
                 possible_actions_dict[drone].append(drone + ' right')
@@ -70,12 +71,9 @@ class DroneProblem(search.Problem):
         all_possible_actions = list(itertools.product(all_possible_actions))
         return all_possible_actions
 
-
     def result(self, state, action):
         for drone, drone_dict in state['drones']:
             pass
-
-
 
         """Return the state that results from executing the given
         action in the given state. The action must be one of
@@ -84,6 +82,11 @@ class DroneProblem(search.Problem):
     def goal_test(self, state):
         """ Given a state, checks if this is the goal state.
          Returns True if it is, False otherwise."""
+        for client in state['clients']:
+            for package in client['packages']:
+                if package["given"] == False:
+                    return false
+        return true
 
     def h(self, node):
         """ This is the heuristic. It gets a node (not a state,
