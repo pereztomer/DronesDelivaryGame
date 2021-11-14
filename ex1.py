@@ -26,7 +26,9 @@ class DroneProblem(search.Problem):
                                  'packages': initial['clients'][key]['packages'],
                                  'pattern_cur': 0,
                                  'loc': initial['clients'][key]['path'][0]}
-
+        for client in clients_init:
+            for package in clients_init[client]['packages']:
+                package_init[package]['belong'] = client
         data = {'map': initial['map'],
                 'drones': drone_init,
                 'packages': package_init,
@@ -56,24 +58,23 @@ class DroneProblem(search.Problem):
                 drone_dict['loc'][1]] == 'P':
                 possible_actions_dict[drone].append(drone + ' down')
             if drone_dict['loc'][1] - 1 >= 0 and state['map'][drone_dict['loc'][0]][drone_dict['loc'][1] - 1] == 'P':
-                possible_actions_dict[drone].append(drone + ' right')
-            if drone_dict['loc'][1] + 1 < width and state['map'][drone_dict['loc'][0]][drone_dict['loc'][1] + 1] == 'P':
                 possible_actions_dict[drone].append(drone + ' left')
+            if drone_dict['loc'][1] + 1 < width and state['map'][drone_dict['loc'][0]][drone_dict['loc'][1] + 1] == 'P':
+                possible_actions_dict[drone].append(drone + ' right')
 
         for package, package_dict in state['packages'].items():
-            if package_dict['lifted-buy'] == 'null' and package_dict['belong'] != 'null':
+            if package_dict['holder'] == 'null' and package_dict['belong'] != 'null':
                 for drone, drone_dict in state['drones'].items():
-                    if sorted(drone_dict['loc']) == sorted(package['loc']):
+                    if drone_dict['loc'] == package_dict['loc']:
                         possible_actions_dict[drone].append('pick_up_' + drone + '_' + package)
 
         all_possible_actions = []
         for drone in state['drones'].keys():
             all_possible_actions.append(possible_actions_dict[drone])
-        all_possible_actions = tuple(all_possible_actions)
-
-        all_possible_actions = list(itertools.product(all_possible_actions))
+        # all_possible_actions = tuple(all_possible_actions)
+        all_possible_actions = list(itertools.product(*all_possible_actions))
         ### שני מלטים יכולים להרים את אותה חבילה
-        print("I Hate PUPA!")
+        print("I Love PUPA!")
         return all_possible_actions
 
     def result(self, state, action):
@@ -100,7 +101,7 @@ class DroneProblem(search.Problem):
         state = json.loads(state)
         for client in state['clients']:
             for package in state['clients'][client]['packages']:
-                if state['packages'][package]['given']== False:
+                if state['packages'][package]['given'] == False:
                     return False
         return True
 
