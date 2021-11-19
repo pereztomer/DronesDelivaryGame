@@ -59,7 +59,7 @@ def solve_problems(problems):
         except Exception as e:
             print("Error creating problem: ", e)
             return None
-        timeout = 60
+        timeout = 600
         result = check_problem(p, (lambda p: search.best_first_graph_search(p, p.h)), timeout)
         print("GBFS ", result)
         if result[2] != None:
@@ -71,19 +71,6 @@ def main():
     print(ex1.ids)
     """Here goes the input you want to check"""
     problems = [
-        {
-            "map": [['P', 'P', 'P', 'P'],
-                    ['P', 'P', 'P', 'P'],
-                    ['P', 'I', 'P', 'I'],
-                    ['P', 'P', 'P', 'P'], ],
-            "drones": {'drone 1': (3, 3),
-                       'drone 2': (1, 0)},
-            "packages": {'package 1': (1, 0),
-                         'package 2': (3, 0),
-                         'package 3': (2, 1)},
-            "clients": {'Sarah': {"path": [(0, 2), (2, 2), (2, 0), (0, 0)],
-                                  "packages": ('package 1', 'package 2', 'package 3')}}
-        },
 
         {
             "map": [['P', 'P', 'P', 'P'],
@@ -142,7 +129,22 @@ def main():
                         }
         },
     ]
-
+    # problems = [
+    #
+    #     {
+    #         "map": [['P', 'P', 'P', 'P'],
+    #                 ['P', 'P', 'P', 'P'],
+    #                 ['P', 'I', 'P', 'I'],
+    #                 ['P', 'P', 'P', 'P'], ],
+    #         "drones": {'drone 1': (3, 3),
+    #                    'drone 2': (1, 0)},
+    #         "packages": {'package 1': (0, 3),
+    #                      'package 2': (3, 0),
+    #                      'package 3': (2, 1)},
+    #         "clients": {'Sarah': {"path": [(0, 2), (2, 2), (2, 0), (0, 0)],
+    #                               "packages": ('package 1', 'package 2', 'package 3')}}
+    #     }
+    # ]
 
     solve_problems(problems)
 

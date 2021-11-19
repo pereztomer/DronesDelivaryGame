@@ -20,7 +20,7 @@ class DroneProblem(search.Problem):
         for key in initial['drones']:
             drone_init[key] = {'loc': initial['drones'][key], 'holding': ["null", "null"]}
         for key in initial['packages']:
-            package_init[key] = {'loc': initial['packages'][key], 'belong': "null", 'holder': "null", 'given': False}
+            package_init[key] = {'loc': initial['packages'][key], 'belong': "null", 'holder': "null"}
         for key in initial['clients']:
             clients_init[key] = {'path': initial['clients'][key]['path'],
                                  'packages': initial['clients'][key]['packages'],
@@ -29,12 +29,19 @@ class DroneProblem(search.Problem):
         for client in clients_init:
             for package in clients_init[client]['packages']:
                 package_init[package]['belong'] = client
-        data = {'map': initial['map'],
-                'drones': drone_init,
-                'packages': package_init,
-                'clients': clients_init,
-                'clock': 0
-                }
+        data = {
+            'drones': drone_init,
+            'packages': package_init,
+            'clients': clients_init
+        }
+        self.map = initial['map']
+        self.clock = 0
+        used_packages = {}
+        for package, package_dict in data['packages'].items():
+            if package_dict['belong'] != 'null':
+                used_packages[package] = package_dict
+        data['packages'] = used_packages
+
         data = json.dumps(data, sort_keys=True)
         # print(data)
         # pupa= json.loads(data)
@@ -46,11 +53,13 @@ class DroneProblem(search.Problem):
                as defined in the problem description file"""
 
         state = json.loads(state)
-        length = len(state['map'])
-        width = len(state['map'][0])
+        length = len(self.map)
+        width = len(self.map[0])
         possible_actions_dict = {}
+        ########    MOVE   #########
         for drone in state['drones'].keys():
-            possible_actions_dict[drone] = [drone + ' wait']
+            possible_actions_dict[drone] = []
+            possible_actions_dict[drone].append(['wait', drone])
         for drone, drone_dict in state['drones'].items():
             if drone_dict['loc'][0] - 1 >= 0 and state['map'][drone_dict['loc'][0] - 1][drone_dict['loc'][1]] == 'P':
                 possible_actions_dict[drone].append(drone + ' up')
@@ -73,9 +82,32 @@ class DroneProblem(search.Problem):
             all_possible_actions.append(possible_actions_dict[drone])
         # all_possible_actions = tuple(all_possible_actions)
         all_possible_actions = list(itertools.product(*all_possible_actions))
-        ### שני מלטים יכולים להרים את אותה חבילה
-        print("I Love PUPA!")
-        return all_possible_actions
+
+        for index, possible_action in enumerate(all_possible_actions):
+            test_lst = []
+            for drone_combination in possible_action:
+                if drone_combination[0] == 'pick up':
+                    test_lst.append(drone_combination[2])
+            if len(test_lst) != len(set(test_lst)):
+                del all_possible_actions[index]
+
+        # all_possible_actions = copy_possible_actions
+
+        return tuple(all_possible_actions)
+
+    def MoveTurn(self, state):
+        self.clock += 1
+        # turn_Num = self.clock
+        for client in state['clients']:
+            path_idx = state['clients'][client]['pattern_cur']
+            path_len = len(state['clients'][client]['path'])
+            if path_len - 1 == path_idx:
+                state['clients'][client]['pattern_cur'] = 0
+            else:
+                state['clients'][client]['pattern_cur'] += 1
+            path_idx = state['clients'][client]['pattern_cur']
+            state['clients'][client]['loc'] = state['clients'][client]['path'][path_idx]
+        return state
 
     def result(self, state, action):
         pass
@@ -99,11 +131,13 @@ class DroneProblem(search.Problem):
         """ Given a state, checks if this is the goal state.
          Returns True if it is, False otherwise."""
         state = json.loads(state)
-        for client in state['clients']:
-            for package in state['clients'][client]['packages']:
-                if state['packages'][package]['given'] == False:
-                    return False
-        return True
+        if not state['packages']:
+            return True
+        # for client in self.clients:
+        #     for package in self.clients[client]['packages']:
+        #         if state['packages'][package]['given'] == False:
+        #             return False
+        return False
 
     def h(self, node):
         """ This is the heuristic. It gets a node (not a state,
