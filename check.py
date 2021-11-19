@@ -71,7 +71,28 @@ def main():
     print(ex1.ids)
     """Here goes the input you want to check"""
     problems = [
-
+        {
+            "map": [['P', 'P', 'P'],
+                    ['P', 'P', 'P'],
+                    ['P', 'I', 'P'], ],
+            "drones": {'drone 1': (0, 0),
+                       'drone 2': (0, 1)},
+            "packages": {'package 1': (1, 2),
+                         'package 2': (2, 2)},
+            "clients": {'Yossi': {"path": [(0, 1), (1, 1), (1, 0), (0, 0)],
+                                  "packages": ('package 1', 'package 2')}}
+        },
+        {
+            "map": [['P', 'P', 'P', 'P'],
+                    ['P', 'P', 'P', 'P'],
+                    ['P', 'I', 'P', 'P'],
+                    ['P', 'P', 'P', 'P'], ],
+            "drones": {'drone 1': (3, 3)},
+            "packages": {'package 1': (0, 2),
+                         'package 2': (2, 0)},
+            "clients": {'Yossi': {"path": [(0, 1), (1, 1), (1, 0), (0, 0)],
+                                  "packages": ('package 1', 'package 2')}}
+        },
         {
             "map": [['P', 'P', 'P', 'P'],
                     ['P', 'P', 'P', 'P'],
@@ -125,7 +146,7 @@ def main():
             "clients": {'Alice': {"path": [(0, 1), (1, 1), (1, 0), (0, 0), (2, 2)],
                                   "packages": ('package 1', 'package 2', 'package 3')},
                         'Bob': {"path": [(4, 3), (2, 2), (4, 2), (4, 4)],
-                                "packages": ('package 4', )},
+                                "packages": ('package 4',)},
                         }
         },
     ]

@@ -53,13 +53,13 @@ class DroneProblem(search.Problem):
                as defined in the problem description file"""
 
         state = json.loads(state)
-        length = len(self.map)
-        width = len(self.map[0])
+        width = len(self.map)
+        length = len(self.map[0])
         possible_actions_dict = {}
         ########    MOVE   #########
         for drone in state['drones'].keys():
             possible_actions_dict[drone] = []
-            possible_actions_dict[drone].append(['wait', drone])
+            possible_actions_dict[drone].append(('wait', drone))
         for drone, drone_dict in state['drones'].items():
             if drone_dict['loc'][0] - 1 >= 0 and state['map'][drone_dict['loc'][0] - 1][drone_dict['loc'][1]] == 'P':
                 possible_actions_dict[drone].append(drone + ' up')
