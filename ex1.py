@@ -3,6 +3,7 @@ import json
 import search
 import random
 import math
+import copy
 
 ids = ["318295029", "316327451"]
 
@@ -43,8 +44,6 @@ class DroneProblem(search.Problem):
         data['packages'] = used_packages
 
         data = json.dumps(data, sort_keys=True)
-        # print(data)
-        # pupa= json.loads(data)
         search.Problem.__init__(self, data)
 
     def actions(self, state):
@@ -61,21 +60,41 @@ class DroneProblem(search.Problem):
             possible_actions_dict[drone] = []
             possible_actions_dict[drone].append(('wait', drone))
         for drone, drone_dict in state['drones'].items():
-            if drone_dict['loc'][0] - 1 >= 0 and state['map'][drone_dict['loc'][0] - 1][drone_dict['loc'][1]] == 'P':
-                possible_actions_dict[drone].append(drone + ' up')
-            if drone_dict['loc'][0] + 1 < length and state['map'][drone_dict['loc'][0] + 1][
-                drone_dict['loc'][1]] == 'P':
-                possible_actions_dict[drone].append(drone + ' down')
-            if drone_dict['loc'][1] - 1 >= 0 and state['map'][drone_dict['loc'][0]][drone_dict['loc'][1] - 1] == 'P':
-                possible_actions_dict[drone].append(drone + ' left')
-            if drone_dict['loc'][1] + 1 < width and state['map'][drone_dict['loc'][0]][drone_dict['loc'][1] + 1] == 'P':
-                possible_actions_dict[drone].append(drone + ' right')
+            loc1 = drone_dict['loc'][0]
+            loc2 = drone_dict['loc'][1]
+            if loc1 - 1 >= 0 and self.map[loc1 - 1][loc2] == 'P':
+                possible_actions_dict[drone].append(('move', drone, (loc1 - 1, loc2)))
+            if loc1 + 1 < width and self.map[loc1 + 1][loc2] == 'P':
+                possible_actions_dict[drone].append(('move', drone, (loc1 + 1, loc2)))
+            if loc2 - 1 >= 0 and self.map[loc1][loc2 - 1] == 'P':
+                possible_actions_dict[drone].append(('move', drone, (loc1, loc2 - 1)))
+            if loc2 + 1 < length and self.map[loc1][loc2 + 1] == 'P':
+                possible_actions_dict[drone].append(('move', drone, (loc1, loc2 + 1)))
 
+        ########    PICK   ##########
         for package, package_dict in state['packages'].items():
-            if package_dict['holder'] == 'null' and package_dict['belong'] != 'null':
+            if package_dict['holder'] == 'null':
                 for drone, drone_dict in state['drones'].items():
-                    if drone_dict['loc'] == package_dict['loc']:
-                        possible_actions_dict[drone].append('pick_up_' + drone + '_' + package)
+                    have_empty_place = drone_dict['holding'][0] == 'null' or drone_dict['holding'][1] == 'null'
+                    if drone_dict['loc'] == package_dict['loc'] and have_empty_place:
+                        possible_actions_dict[drone].append(('pick up', drone, package))
+
+        ########    DELIVER   ##########
+        clients_and_robots = {}
+        for drone in state['drones']:
+            for client in state['clients']:
+                if state['clients'][client]['loc'] == state['drones'][drone]['loc']:
+                    if drone in clients_and_robots.keys():
+                        clients_and_robots[drone].append(client)
+                    else:
+                        clients_and_robots[drone] = [client]
+
+        for drone in clients_and_robots.keys():
+            for i in range(2):
+                name_of_pack = state['drones'][drone]['holding'][i]
+                if name_of_pack != 'null' and state["packages"][name_of_pack]["belong"] in clients_and_robots[drone]:
+                    possible_actions_dict[drone].append(
+                        ('deliver', drone, state["packages"][name_of_pack]["belong"], name_of_pack))
 
         all_possible_actions = []
         for drone in state['drones'].keys():
@@ -110,22 +129,44 @@ class DroneProblem(search.Problem):
         return state
 
     def result(self, state, action):
-        pass
-        # for drone, drone_dict in state['drones']:
-        #     for val in action:
-        #         if drone in val:
-        #             if 'up' in val:
-        #             if 'down' in val:
-        #             if 'left' in val:
-        #             if 'right' in val:
-        #             if 'wait' in val:
-        #             if 'pick_up' in val:
-        #
-        #     pass
+        state = json.loads(state)
+        for specific_drone_action in action:
+            action_type = specific_drone_action[0]
+            d_name = specific_drone_action[1]
+
+            if action_type == 'wait':
+                continue
+            # (“move”,“drone_name”, (x, y))
+            elif action_type == 'move':
+                new_loc = specific_drone_action[2]
+                state['drones'][d_name]['loc'] = new_loc
+            # (“pick up”,“drone_name”, “package_name”)
+            elif action_type == 'pick up':
+                p_name = specific_drone_action[2]
+                if state['drones'][d_name]['holding'][0] == 'null':
+                    state['drones'][d_name]['holding'][0] = p_name
+                else:
+                    state['drones'][d_name]['holding'][1] = p_name
+                state['packages'][p_name]['holder'] = d_name
+                state['packages'][p_name]['loc'] = (-1, -1)
+            # (“deliver”, “drone_name”, “client_name”, “package_name”).
+            elif action_type == 'deliver':
+                c_name = specific_drone_action[2]
+                p_name = specific_drone_action[3]
+                del state['packages'][p_name]
+                state['clients'][c_name]['packages'].remove(p_name)
+                if state['drones'][d_name]['holding'][0] == p_name:  # i can DELETE WRONG PACK IF I HAVE DIFFERENT 2!
+                    state['drones'][d_name]['holding'][0] = 'null'
+                elif state['drones'][d_name]['holding'][1] == p_name:
+                    state['drones'][d_name]['holding'][1] = 'null'
+                else:
+                    print("WTF ?!")
+        state = self.MoveTurn(state)
 
         """Return the state that results from executing the given
-        action in the given state. The action must be one of
-        self.actions(state)."""
+              action in the given state. The action must be one of
+              self.actions(state)."""
+        return json.dumps(state, sort_keys=True)
 
     def goal_test(self, state):
         """ Given a state, checks if this is the goal state.
