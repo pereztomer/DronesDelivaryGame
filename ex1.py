@@ -37,6 +37,8 @@ class DroneProblem(search.Problem):
         }
         self.map = initial['map']
         self.clock = 0
+        self.d_num = len(drone_init.keys())
+        self.p_num = len(package_init.keys())
         used_packages = {}
         for package, package_dict in data['packages'].items():
             if package_dict['belong'] != 'null':
@@ -140,6 +142,9 @@ class DroneProblem(search.Problem):
             elif action_type == 'move':
                 new_loc = specific_drone_action[2]
                 state['drones'][d_name]['loc'] = new_loc
+                for p in state['drones'][d_name]['holding']:
+                    if p != 'null':
+                        state['packages'][p]['loc'] = new_loc
             # (“pick up”,“drone_name”, “package_name”)
             elif action_type == 'pick up':
                 p_name = specific_drone_action[2]
@@ -148,8 +153,9 @@ class DroneProblem(search.Problem):
                 else:
                     state['drones'][d_name]['holding'][1] = p_name
                 state['packages'][p_name]['holder'] = d_name
-                state['packages'][p_name]['loc'] = (-1, -1)
-            # (“deliver”, “drone_name”, “client_name”, “package_name”).
+                # state['packages'][p_name]['loc'] = (-1, -1)
+                state['packages'][p_name]['loc'] = state['drones'][d_name]['loc']  # NEW!
+                # (“deliver”, “drone_name”, “client_name”, “package_name”).
             elif action_type == 'deliver':
                 c_name = specific_drone_action[2]
                 p_name = specific_drone_action[3]
@@ -174,16 +180,47 @@ class DroneProblem(search.Problem):
         state = json.loads(state)
         if not state['packages']:
             return True
-        # for client in self.clients:
-        #     for package in self.clients[client]['packages']:
-        #         if state['packages'][package]['given'] == False:
-        #             return False
+
         return False
+
+    def manhattan(self, a, b):
+        return sum(abs(val1 - val2) for val1, val2 in zip(a, b))
+
+    def centroid_poly(self, X, Y):
+        N = len(X)
+        # minimal sanity check
+        if not (N == len(Y)):
+            raise ValueError('X and Y must be same length.')
+        elif N < 3:
+            raise ValueError('At least 3 vertices must be passed.')
+        sum_A, sum_Cx, sum_Cy = 0, 0, 0
+        last_iteration = N - 1
+        # from 0 to N-1
+        for i in range(N):
+            if i != last_iteration:
+                shoelace = X[i] * Y[i + 1] - X[i + 1] * Y[i]
+                sum_A += shoelace
+                sum_Cx += (X[i] + X[i + 1]) * shoelace
+                sum_Cy += (Y[i] + Y[i + 1]) * shoelace
+            else:
+                # N-1 case (last iteration): substitute i+1 -> 0
+                shoelace = X[i] * Y[0] - X[0] * Y[i]
+                sum_A += shoelace
+                sum_Cx += (X[i] + X[0]) * shoelace
+                sum_Cy += (Y[i] + Y[0]) * shoelace
+        A = 0.5 * sum_A
+        factor = 1 / (6 * A)
+        Cx = factor * sum_Cx
+        Cy = factor * sum_Cy
+        # returning abs of A is the only difference to
+        # the algo from above link
+        return Cx, Cy, abs(A)
 
     def h(self, node):
         """ This is the heuristic. It gets a node (not a state,
         state can be accessed via node.state)
         and returns a goal distance estimate"""
+
         return 0
 
     """Feel free to add your own functions
