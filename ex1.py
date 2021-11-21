@@ -39,11 +39,15 @@ class DroneProblem(search.Problem):
         self.clock = 0
         self.d_num = len(drone_init.keys())
         self.p_num = len(package_init.keys())
+        self.centroids_dict = {}
+        for client in clients_init:
+            self.centroids_dict[client] = self.find_centroid(clients_init[client]['path'])
         used_packages = {}
         for package, package_dict in data['packages'].items():
             if package_dict['belong'] != 'null':
                 used_packages[package] = package_dict
         data['packages'] = used_packages
+        data['clock'] = 0  # TESTIES
 
         data = json.dumps(data, sort_keys=True)
         search.Problem.__init__(self, data)
@@ -118,6 +122,7 @@ class DroneProblem(search.Problem):
 
     def MoveTurn(self, state):
         self.clock += 1
+        state['clock'] += 1
         # turn_Num = self.clock
         for client in state['clients']:
             path_idx = state['clients'][client]['pattern_cur']
@@ -186,42 +191,71 @@ class DroneProblem(search.Problem):
     def manhattan(self, a, b):
         return sum(abs(val1 - val2) for val1, val2 in zip(a, b))
 
-    def centroid_poly(self, X, Y):
-        N = len(X)
-        # minimal sanity check
-        if not (N == len(Y)):
-            raise ValueError('X and Y must be same length.')
-        elif N < 3:
-            raise ValueError('At least 3 vertices must be passed.')
-        sum_A, sum_Cx, sum_Cy = 0, 0, 0
-        last_iteration = N - 1
-        # from 0 to N-1
-        for i in range(N):
-            if i != last_iteration:
-                shoelace = X[i] * Y[i + 1] - X[i + 1] * Y[i]
-                sum_A += shoelace
-                sum_Cx += (X[i] + X[i + 1]) * shoelace
-                sum_Cy += (Y[i] + Y[i + 1]) * shoelace
-            else:
-                # N-1 case (last iteration): substitute i+1 -> 0
-                shoelace = X[i] * Y[0] - X[0] * Y[i]
-                sum_A += shoelace
-                sum_Cx += (X[i] + X[0]) * shoelace
-                sum_Cy += (Y[i] + Y[0]) * shoelace
-        A = 0.5 * sum_A
-        factor = 1 / (6 * A)
-        Cx = factor * sum_Cx
-        Cy = factor * sum_Cy
-        # returning abs of A is the only difference to
-        # the algo from above link
-        return Cx, Cy, abs(A)
+    def find_centroid(self, list_of_points):
+        X = [item[0] for item in list_of_points]
+        Y = [item[1] for item in list_of_points]
+        return round(sum(X) / len(X)), round(sum(Y) / len(Y))
 
     def h(self, node):
         """ This is the heuristic. It gets a node (not a state,
         state can be accessed via node.state)
         and returns a goal distance estimate"""
+        state = json.loads(node.state)
 
-        return 0
+        price = 0
+        # params:
+        a = 0.7 # steps before lifting
+        b = 2 # steps after lifting
+        c = 4 # centroid caluster size
+        d = 1.1 # bigger = better and slower
+
+        for pack in state['packages'].keys():
+            owner = state['packages'][pack]['belong']
+            price += (b * self.manhattan(state['packages'][pack]['loc'], self.centroids_dict[owner]))
+
+        dist_dict = {}
+        overall_nearest = []
+        if self.d_num >= self.p_num:
+            for pack in state['packages']:
+                dist_dict[pack] = []
+                for drone in state['drones']:
+                    dist_tuple = (self.manhattan(state['packages'][pack]['loc'], state['drones'][drone]['loc']), drone)
+                    dist_dict[pack].append(dist_tuple)
+                dist_dict[pack] = (sorted(dist_dict[pack]))
+                overall_nearest.append((dist_dict[pack][0], pack))
+
+            used_drones = []
+            used_packs = []
+            overall_nearest = sorted(overall_nearest)
+            while overall_nearest:
+                current_leader = overall_nearest.pop(0)
+                leading_drone = current_leader[0][1]
+                leading_pack = current_leader[1]
+                if leading_pack not in used_packs and leading_drone not in used_drones:
+                    price += a * current_leader[0][0]
+                    used_drones.append(leading_drone)
+                    used_packs.append(leading_pack)
+        else:
+
+            for drone in state['drones']:
+                dist_dict[drone] = []
+                # dist_dict[drone + "b"] = []
+                if state['packages']:
+                    for pack in state['packages']:
+                        dist_tuple = (
+                            self.manhattan(state['drones'][drone]['loc'], state['packages'][pack]['loc']), pack)
+                        dist_dict[drone].append(dist_tuple)
+                    dist_dict[drone] = sorted(dist_dict[drone])
+                    points = []
+                    for i in range(c):
+                        try:
+                            points.append(dist_dict[drone][i][0])
+                        except:
+                            price += 0
+
+                    price += int((a * round(sum(points) / len(points))))
+        price += state['clock']*d
+        return price
 
     """Feel free to add your own functions
     (-2, -2, None) means there was a timeout"""
