@@ -277,10 +277,10 @@ class DroneProblem(search.Problem):
 
         price = 0
         # params:
-        a = 1  # steps before lifting
-        b = 1  # steps after lifting!
+        a = 2  # steps before lifting
+        b = 1.1  # steps after lifting!
         c = 4  # centroid caluster size
-        d = 0.8  # bigger = better and slower
+        d = 0.8 # bigger = better and slower
 
         for pack in state['packages'].keys():
             owner = state['packages'][pack]['belong']
@@ -320,7 +320,7 @@ class DroneProblem(search.Problem):
                 if state['packages']:
                     for pack in state['packages']:
                         dist_tuple = (
-                            self.manhattan(state['drones'][drone]['loc'], state['packages'][pack]['loc']), pack)
+                            self.bfs_dist[tuple(state['drones'][drone]['loc'])][tuple(state['packages'][pack]['loc'])], pack)
                         dist_dict[drone].append(dist_tuple)
                     dist_dict[drone] = sorted(dist_dict[drone])
                     points = []
