@@ -4,6 +4,7 @@ import search
 import random
 import math
 import copy
+import numpy as np
 
 ids = ["318295029", "316327451"]
 
@@ -42,12 +43,31 @@ class DroneProblem(search.Problem):
         self.centroids_dict = {}
         for client in clients_init:
             self.centroids_dict[client] = self.find_centroid(clients_init[client]['path'])
+
+            # self.centroids_dict[client]=clients_init[client]['path'][0]
         used_packages = {}
         for package, package_dict in data['packages'].items():
             if package_dict['belong'] != 'null':
                 used_packages[package] = package_dict
         data['packages'] = used_packages
         data['clock'] = 0  # TESTIES
+        ######## dist metric ##########
+        adj_dict = self.set_up_graph(self.map)
+        dist_table = {}
+        for point, value in adj_dict.items():
+            dist_table[point] = {}
+        for index_1, y in enumerate(self.map):
+            for index_2, x in enumerate(y):
+                if self.map[index_1][index_2] == 'I':
+                    continue
+                root = (index_1, index_2)
+                self.bfs(graph=adj_dict, root=root)
+                self.fill_table(graph=adj_dict, node=root, dist_table=dist_table)
+                self.reset(self.map, adj_dict)
+
+        self.bfs_dist = dist_table
+        # for key, value in dist_table.items():
+        # print(f'The key is {key} and the value is {value}')
 
         data = json.dumps(data, sort_keys=True)
         search.Problem.__init__(self, data)
@@ -196,6 +216,59 @@ class DroneProblem(search.Problem):
         Y = [item[1] for item in list_of_points]
         return round(sum(X) / len(X)), round(sum(Y) / len(Y))
 
+    def geometric_median(self, X, numIter=200):
+        """
+        Compute the geometric median of a point sample.
+        The geometric median coordinates will be expressed in the Spatial Image reference system (not in real world metrics).
+        We use the Weiszfeld's algorithm (http://en.wikipedia.org/wiki/Geometric_median)
+
+        :Parameters:
+         - `X` (list|np.array) - voxels coordinate (3xN matrix)
+         - `numIter` (int) - limit the length of the search for global optimum
+
+        :Return:
+         - np.array((x,y,z)): geometric median of the coordinates;
+        """
+        # -- Initialising 'median' to the centroid
+        y = np.mean(X, 1)
+        # -- If the init point is in the set of points, we shift it:
+        while (y[0] in X[0]) and (y[1] in X[1]) and (y[2] in X[2]):
+            y += 0.1
+
+        convergence = False  # boolean testing the convergence toward a global optimum
+        dist = []  # list recording the distance evolution
+
+        # -- Minimizing the sum of the squares of the distances between each points in 'X' and the median.
+        i = 0
+        while (not convergence) and (i < numIter):
+            num_x, num_y, num_z = 0.0, 0.0, 0.0
+            denum = 0.0
+            m = X.shape[1]
+            d = 0
+            for j in range(0, m):
+                div = math.sqrt((X[0, j] - y[0]) ** 2 + (X[1, j] - y[1]) ** 2 + (X[2, j] - y[2]) ** 2)
+                num_x += X[0, j] / div
+                num_y += X[1, j] / div
+                num_z += X[2, j] / div
+                denum += 1. / div
+                d += div ** 2  # distance (to the median) to miminize
+            dist.append(d)  # update of the distance evolution
+
+            if denum == 0.:
+                return [0, 0, 0]
+
+            y = [num_x / denum, num_y / denum, num_z / denum]  # update to the new value of the median
+            if i > 3:
+                convergence = (
+                        abs(dist[i] - dist[i - 2]) < 0.1)  # we test the convergence over three steps for stability
+                # ~ print abs(dist[i]-dist[i-2]), convergence
+            i += 1
+        if i == numIter:
+            raise ValueError("The Weiszfeld's algoritm did not converged after" + str(numIter) + "iterations !!!!!!!!!")
+        # -- When convergence or iterations limit is reached we assume that we found the median.
+
+        return np.array(y)
+
     def h(self, node):
         """ This is the heuristic. It gets a node (not a state,
         state can be accessed via node.state)
@@ -204,14 +277,17 @@ class DroneProblem(search.Problem):
 
         price = 0
         # params:
-        a = 0.7 # steps before lifting
-        b = 2 # steps after lifting!
-        c = 4 # centroid caluster size
-        d = 1.1 # bigger = better and slower
+        a = 1  # steps before lifting
+        b = 1  # steps after lifting!
+        c = 4  # centroid caluster size
+        d = 0.8  # bigger = better and slower
 
         for pack in state['packages'].keys():
             owner = state['packages'][pack]['belong']
-            price += (b * self.manhattan(state['packages'][pack]['loc'], self.centroids_dict[owner]))
+            try:  # consider better solution, centroind in unreachable
+                price += (b * self.bfs_dist[tuple(state['packages'][pack]['loc'])][self.centroids_dict[owner]])
+            except:
+                price += (b * self.bfs_dist[tuple(state['packages'][pack]['loc'])][tuple(state['clients'][owner]['path'][0])])
 
         dist_dict = {}
         overall_nearest = []
@@ -219,7 +295,8 @@ class DroneProblem(search.Problem):
             for pack in state['packages']:
                 dist_dict[pack] = []
                 for drone in state['drones']:
-                    dist_tuple = (self.manhattan(state['packages'][pack]['loc'], state['drones'][drone]['loc']), drone)
+                    dist_tuple = (self.bfs_dist[tuple(state['packages'][pack]['loc'])][tuple(state['drones'][drone]['loc'])], drone)
+                    # dist_tuple = (self.manhattan(state['packages'][pack]['loc'], state['drones'][drone]['loc']), drone)
                     dist_dict[pack].append(dist_tuple)
                 dist_dict[pack] = (sorted(dist_dict[pack]))
                 overall_nearest.append((dist_dict[pack][0], pack))
@@ -253,12 +330,65 @@ class DroneProblem(search.Problem):
                         except:
                             price += 0
 
-                    price += int((a * round(sum(points) / len(points))))
-        price += state['clock']*d
+                    price += (a * round(sum(points) / len(points)))
+        price += state['clock'] * d
         return price
 
     """Feel free to add your own functions
     (-2, -2, None) means there was a timeout"""
+
+    def set_up_graph(self, map):
+        adj_dict = {}
+
+        for index_1, y in enumerate(map):
+            for index_2, x in enumerate(y):
+                if map[index_1][index_2] == 'P':
+                    adj_dict[(index_1, index_2)] = ([], ['white', 1000000, 'null'])
+
+        for index_1, y in enumerate(map):
+            for index_2, x in enumerate(y):
+                if map[index_1][index_2] == 'I':
+                    continue
+                if index_1 - 1 >= 0 and map[index_1 - 1][index_2] == 'P':
+                    adj_dict[(index_1, index_2)][0].append((index_1 - 1, index_2))
+                if index_1 + 1 < len(map) and map[index_1 + 1][index_2] == 'P':
+                    adj_dict[(index_1, index_2)][0].append((index_1 + 1, index_2))
+                if index_2 - 1 >= 0 and map[index_1][index_2 - 1] == 'P':
+                    adj_dict[(index_1, index_2)][0].append((index_1, index_2 - 1))
+                if index_2 + 1 < len(map[0]) and map[index_1][index_2 + 1] == 'P':
+                    adj_dict[(index_1, index_2)][0].append((index_1, index_2 + 1))
+
+        return adj_dict
+
+    def reset(self, map, adj_dict):
+        for index_1, y in enumerate(map):
+            for index_2, x in enumerate(y):
+                if map[index_1][index_2] == 'P':
+                    adj_dict[(index_1, index_2)][1][0] = 'white'
+                    adj_dict[(index_1, index_2)][1][1] = 1000000
+                    adj_dict[(index_1, index_2)][1][2] = 'null'
+
+    def bfs(self, graph, root):
+        visited = []  # List to keep track of visited nodes.
+        queue = []  # Initialize a queue
+
+        graph[root][1][0] = 'grey'
+        graph[root][1][1] = 0
+        visited.append(root)
+        queue.append(root)
+
+        while queue:
+            s = queue.pop(0)
+            for neighbour in graph[s][0]:
+                if graph[neighbour][1][0] == 'white':
+                    graph[neighbour][1][0] = 'grey'
+                    graph[neighbour][1][1] = graph[s][1][1] + 1
+                    graph[neighbour][1][2] = s
+                    queue.append(neighbour)
+
+    def fill_table(self, graph, node, dist_table):
+        for vertix in graph:
+            dist_table[node][vertix] = graph[vertix][1][1]
 
 
 def create_drone_problem(game):
