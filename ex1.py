@@ -277,8 +277,8 @@ class DroneProblem(search.Problem):
 
         price = 0
         # params:
-        a = 2  # steps before lifting
-        b = 1.1  # steps after lifting!
+        a = 1  # steps before lifting
+        b = 1  # steps after lifting!
         c = 4  # centroid caluster size
         d = 0.8 # bigger = better and slower
 
